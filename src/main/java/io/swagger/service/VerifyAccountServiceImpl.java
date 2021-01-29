@@ -1,7 +1,6 @@
 package io.swagger.service;
 
 
-import com.fasterxml.jackson.databind.ObjectMapper;
 import io.swagger.model.*;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpHeaders;
@@ -53,13 +52,18 @@ public class VerifyAccountServiceImpl implements VerifyAccountService{
             HttpURLConnection con = (HttpURLConnection)url.openConnection();
             con.setRequestMethod("POST");
             //set headers
-            con.addRequestProperty("User-Agent", "Mozilla/4.76");
+            con.addRequestProperty("User-Agent", "Mozilla/4.76"); // only for this dummy url
             con.setRequestProperty("Content-Type", "application/json");
             con.setRequestProperty ("Accept", accept);
-            //con.setRequestProperty ("x-bic", xbic);
-            //con.setRequestProperty ("SubjectDN", subDN);
-           // con.setRequestProperty ("Institution", inst);
-            //con.setRequestProperty ("Authorization", basicAuth);
+
+            /*
+            Todo uncomment below headers, might need them for actual code
+            con.setRequestProperty ("x-bic", xbic);
+            con.setRequestProperty ("SubjectDN", subDN);
+            con.setRequestProperty ("Institution", inst);
+            con.setRequestProperty ("Authorization", basicAuth);
+            */
+
             con.setUseCaches(false);
             con.setDoOutput(true);
             con.setReadTimeout(5000);
@@ -70,7 +74,7 @@ public class VerifyAccountServiceImpl implements VerifyAccountService{
             // send the input message body
             String jsonInputString = body.toString();
             log.info(":Actual input: " +jsonInputString);
-            String testString = "{\"name\": \"Upendra\", \"job\": \"Programmer\"}";
+            String testString = "{\"name\": \"Ram\", \"job\": \"Programmer\"}";
             log.info("Sample string: " + testString);
 
             try(OutputStream os = con.getOutputStream()){
