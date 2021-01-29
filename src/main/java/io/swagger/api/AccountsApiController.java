@@ -18,6 +18,7 @@ import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.RestController;
@@ -44,10 +45,6 @@ public class AccountsApiController implements AccountsApi {
     @Autowired
     private VerifyAccountServiceImpl verifyAccountServiceImpl;
 
-    public void
-
-    @Autowired
-    private AccountVerificationResponse1 accountVerificationResponse1;
 
     private static final Logger log = LoggerFactory.getLogger(AccountsApiController.class);
 
@@ -55,7 +52,7 @@ public class AccountsApiController implements AccountsApi {
 
     private final HttpServletRequest request;
 
-    @org.springframework.beans.factory.annotation.Autowired
+   @Autowired
     public AccountsApiController(ObjectMapper objectMapper, HttpServletRequest request) {
         this.objectMapper = objectMapper;
         this.request = request;
@@ -64,11 +61,20 @@ public class AccountsApiController implements AccountsApi {
     public ResponseEntity<AccountVerificationResponse1> verifyAccount(@Parameter(in = ParameterIn.HEADER, description = "Describe the BIC for SWIFT to route the request to. Providers get the value from the Gateway and consumers are not required to fill it in." ,required=true,schema=@Schema()) @RequestHeader(value="x-bic", required=true) String xBic, @Parameter(in = ParameterIn.HEADER, description = "Describe the Distinguished Name (DN) of the consumer. Providers get the value from the Gateway and consumers are not required to fill it in." ,required=true,schema=@Schema()) @RequestHeader(value="SubjectDN", required=true) String subjectDN, @Parameter(in = ParameterIn.HEADER, description = "Describe the BIC of the consumer. Providers get the value and consumers are not required to fill it in." ,required=true,schema=@Schema()) @RequestHeader(value="Institution", required=true) String institution, @Parameter(in = ParameterIn.DEFAULT, description = "Verify account details request.", required=true, schema=@Schema()) @Valid @RequestBody AccountVerificationRequest body) {
         log.info("Controller information inside verifyaccount");
         String accept = request.getHeader("Accept");
+        String xbic = request.getHeader("x-bic");
+        String subDN = request.getHeader("SubjectDN");
+        String inst = request.getHeader("Institution");
+        HttpHeaders headers = new HttpHeaders();
+        headers.add("x-bic", xbic);
+        headers.add("SubjectDN", subDN);
+        headers.add("Institution", inst);
+        headers.add("Accept", accept);
+
         if (accept != null && accept.contains("application/json")) {
             try {
-                return new ResponseEntity<AccountVerificationResponse1>(verifyAccountServiceImpl.verifyAccountService("cclabeb0", "o=cclausb0,o=swift", "cclausb0", accountVerificationResponse1 ), HttpStatus.OK);
-               //return new ResponseEntity<AccountVerificationResponse1>(objectMapper.readValue("{\n  \"correlation_identifier\" : \"CORRID-003\",\n  \"response\" : {\n    \"account_validation_status\" : \"PASS\",\n    \"creditor_account_match\" : \"NMTC\",\n    \"creditor_name_match\" : \"NOTC\",\n    \"creditor_address_match\" : \"NOTC\",\n    \"creditor_organisation_identification_match\" : \"NOTC\"\n  }\n}", AccountVerificationResponse1.class), HttpStatus.OK);
-            } catch (IOException e) {
+                return new ResponseEntity<AccountVerificationResponse1>(verifyAccountServiceImpl.verifyAccountService(body, headers),headers, HttpStatus.OK);
+
+            } catch (Exception e) {
                 log.error("Couldn't serialize response for content type application/json", e);
                 return new ResponseEntity<AccountVerificationResponse1>(HttpStatus.INTERNAL_SERVER_ERROR);
             }
