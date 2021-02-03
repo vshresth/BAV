@@ -11,5 +11,6 @@ public interface VerifyAccountService {
 
     public AccountVerificationResponse1 verifyAccountService(AccountVerificationRequest body);
     public AccountVerificationResponse1 verifyAccountService(AccountVerificationRequest body, HttpHeaders headers);
+    public AccountVerificationResponse1 verifyAccountService(AccountVerificationRequest body, String xbic, String subDN, String inst);
 
 }

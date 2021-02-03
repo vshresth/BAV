@@ -1,13 +1,14 @@
 package io.swagger.service;
 
 
+import io.swagger.Util.Cryptography;
 import io.swagger.model.*;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpHeaders;
 import org.springframework.stereotype.Service;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
 import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStreamReader;
@@ -17,20 +18,99 @@ import java.net.URL;
 import java.nio.charset.StandardCharsets;
 import java.util.Base64;
 
+import org.springframework.web.reactive.function.client.WebClient;
+import reactor.core.publisher.Mono;
+
 @Service
 public class VerifyAccountServiceImpl implements VerifyAccountService{
     private static final Logger log = LoggerFactory.getLogger(VerifyAccountServiceImpl.class);
 
     @Value("${test.url}")
     private String testUrl;
+    @Value("${test.user}")
+    private String testUser;
+    @Value("${test.pwd}")
+    private String testPwd;
+
+    private final WebClient webClient;
+    @Autowired
+    public VerifyAccountServiceImpl() {
+        this.webClient = WebClient.builder().baseUrl(testUrl)
+                .defaultHeader(HttpHeaders.CONTENT_TYPE, "application/json")
+                .build();
+    }
+    //HeaderBean headerBean=CustomSpringBean.getHeaderBean();
 
     @Override
     public AccountVerificationResponse1 verifyAccountService(AccountVerificationRequest body) {
+            log.info("End URL is: " + testUrl);
+        HeaderBean headerBean=CustomSpringBean.getHeaderBean();
+            StringBuilder response = new StringBuilder();
+            String responseLine = null;
+
+            //headers
+            String xbic = headerBean.getXbic();
+            String inst = headerBean.getInstitution();
+            String subDN = headerBean.getSubjectDN();
+
+            log.info("xbic: "+xbic);
+            log.info("inst: "+inst);
+            log.info("subDN "+subDN);
+            //user-credential
+            String userCredentials = testUser+":"+Cryptography.decrypt(testPwd);;
+            String basicAuth = "Basic " + new String(Base64.getEncoder().encode(userCredentials.getBytes()));
+
+
+            try {
+                PhixiusRequest preq = new PhixiusRequest ("ram", "programmer");
+                //WebClient
+                PhixiusResponse newResponse= webClient.post()
+                        .uri(testUrl)
+                        .header("x-bic", xbic)
+                        .header("SubjectDN", subDN)
+                        .header("Institution", inst)
+                      //  .header("Authorization", basicAuth)
+                        .header("Accept", "application/json")
+                        .header("User-Agent", "Mozilla/4.76")
+                        .body(Mono.just(preq), PhixiusRequest.class)
+                        .retrieve()
+                        .bodyToMono(PhixiusResponse.class)
+                        .block();
+
+                log.info("Mock response" + newResponse.toString());
+                AccountVerificationResponse1 newAccV = objectMapper(newResponse);
+                log.info("hardcoded with mapper response" + newAccV.toString());
+                return newAccV;
+
+            }catch (Exception e) {
+                log.error("Webclient error", e.getStackTrace());
+                log.error("Webclient error", e);
+
+            }
+            return null;
+    }
+
+    private AccountVerificationResponse1 objectMapper(PhixiusResponse newResponse) {
+        AccountVerificationResponse1 newAccV = new AccountVerificationResponse1();
+        ValidationCheckReponse1 newVCR = new ValidationCheckReponse1();
+
+        newVCR.setAccountValidationStatus(newResponse.getAccountValidationStatus());
+        newVCR.setCreditorAccountMatch(newResponse.getCreditorAccountMatch());
+        newVCR.creditorNameMatch(newResponse.getCreditorNameMatch());
+        newVCR.setCreditorAddressMatch(newResponse.getCreditorAddressMatch());
+        newVCR.setCreditorOrganisationIdentificationMatch(newResponse.getCreditorOrganisationIdentificationMatch());
+        newAccV.setCorrelationIdentifier(newResponse.getCorrelationIdentifier());
+        newAccV.setResponse(newVCR);
+
+        return newAccV;
+    }
+
+    @Override
+    public AccountVerificationResponse1 verifyAccountService(AccountVerificationRequest body, HttpHeaders headers) {
         return null;
     }
     @Override
-    public AccountVerificationResponse1 verifyAccountService(AccountVerificationRequest body, HttpHeaders headers) {
-
+    public AccountVerificationResponse1 verifyAccountService(AccountVerificationRequest body, String xbic, String subDN, String inst) {
         log.info("End URL is: " + testUrl);
         StringBuilder response = new StringBuilder();
         String responseLine = null;
@@ -39,12 +119,16 @@ public class VerifyAccountServiceImpl implements VerifyAccountService{
 
         try {
 
-            //get all headers first
-            String accept = headers.getFirst("Accept");
-            String xbic = headers.getFirst("x-bic");
-            String subDN = headers.getFirst("SubjectDN");
-            String inst = headers.getFirst("Institution");
-            String userCredentials = "username:password";
+            //headers
+           // String xbic = headerBean.getXbic();
+           // String inst = headerBean.getInstitution();
+            //String subDN = headerBean.getSubjectDN();
+
+            log.info("xbic: "+xbic);
+            log.info("inst: "+inst);
+            log.info("subDN "+subDN);
+            //user-credential
+            String userCredentials = testUser+":"+Cryptography.decrypt(testPwd);;
             String basicAuth = "Basic " + new String(Base64.getEncoder().encode(userCredentials.getBytes()));
 
             //create connection to the endpoint
@@ -54,15 +138,12 @@ public class VerifyAccountServiceImpl implements VerifyAccountService{
             //set headers
             con.addRequestProperty("User-Agent", "Mozilla/4.76"); // only for this dummy url
             con.setRequestProperty("Content-Type", "application/json");
-            con.setRequestProperty ("Accept", accept);
-
-            /*
-            Todo uncomment below headers, might need them for actual code
+            con.setRequestProperty ("Accept", "application/json");
             con.setRequestProperty ("x-bic", xbic);
             con.setRequestProperty ("SubjectDN", subDN);
             con.setRequestProperty ("Institution", inst);
-            con.setRequestProperty ("Authorization", basicAuth);
-            */
+            // con.setRequestProperty ("Authorization", basicAuth);
+
 
             con.setUseCaches(false);
             con.setDoOutput(true);
@@ -122,5 +203,7 @@ public class VerifyAccountServiceImpl implements VerifyAccountService{
         newAccV.setResponse(newVCR);
 
         return newAccV;
+
     }
+
 }

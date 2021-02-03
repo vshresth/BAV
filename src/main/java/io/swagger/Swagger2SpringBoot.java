@@ -1,17 +1,27 @@
 package io.swagger;
 
+import io.swagger.interceptor.CustomInterceptor;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.CommandLineRunner;
 import org.springframework.boot.ExitCodeGenerator;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.context.annotation.ComponentScan;
 
+import org.springframework.web.servlet.config.annotation.InterceptorRegistry;
+import org.springframework.web.servlet.config.annotation.WebMvcConfigurationSupport;
 import springfox.documentation.oas.annotations.EnableOpenApi;
 
 @SpringBootApplication
 @EnableOpenApi
 @ComponentScan(basePackages = { "io.swagger", "io.swagger.api" , "io.swagger.configuration"})
-public class Swagger2SpringBoot implements CommandLineRunner {
+public class Swagger2SpringBoot extends WebMvcConfigurationSupport implements CommandLineRunner {
+
+    private final CustomInterceptor customInterceptor;
+
+    public Swagger2SpringBoot(CustomInterceptor customInterceptor) {
+        this.customInterceptor = customInterceptor;
+    }
 
     @Override
     public void run(String... arg0) throws Exception {
@@ -22,6 +32,10 @@ public class Swagger2SpringBoot implements CommandLineRunner {
 
     public static void main(String[] args) throws Exception {
         new SpringApplication(Swagger2SpringBoot.class).run(args);
+    }
+    @Override
+    public void addInterceptors(InterceptorRegistry registry) {
+        registry.addInterceptor(customInterceptor);
     }
 
     class ExitException extends RuntimeException implements ExitCodeGenerator {
