@@ -38,33 +38,34 @@ public class VerifyAccountServiceImpl implements VerifyAccountService{
         this.webClient = WebClient.builder().baseUrl(testUrl)
                 .defaultHeader(HttpHeaders.CONTENT_TYPE, "application/json")
                 .build();
+        log.info("in const 1:");
     }
-    //HeaderBean headerBean=CustomSpringBean.getHeaderBean();
+
 
     @Override
     public AccountVerificationResponse1 verifyAccountService(AccountVerificationRequest body) {
-            log.info("End URL is: " + testUrl);
+
+        log.info("End URL is: " + testUrl);
         HeaderBean headerBean=CustomSpringBean.getHeaderBean();
-            StringBuilder response = new StringBuilder();
-            String responseLine = null;
+        StringBuilder response = new StringBuilder();
+        String responseLine = null;
 
-            //headers
-            String xbic = headerBean.getXbic();
-            String inst = headerBean.getInstitution();
-            String subDN = headerBean.getSubjectDN();
+        //headers
+        String xbic = headerBean.getXbic();
+        String inst = headerBean.getInstitution();
+        String subDN = headerBean.getSubjectDN();
 
-            log.info("xbic: "+xbic);
-            log.info("inst: "+inst);
-            log.info("subDN "+subDN);
-            //user-credential
-            String userCredentials = testUser+":"+Cryptography.decrypt(testPwd);;
-            String basicAuth = "Basic " + new String(Base64.getEncoder().encode(userCredentials.getBytes()));
-
-
-            try {
-                PhixiusRequest preq = new PhixiusRequest ("ram", "programmer");
-                //WebClient
-                PhixiusResponse newResponse= webClient.post()
+        log.info("xbic: "+xbic);
+        log.info("inst: "+inst);
+        log.info("subDN "+subDN);
+        //user-credential
+        String userCredentials = testUser+":"+Cryptography.decrypt(testPwd);;
+        String basicAuth = "Basic " + new String(Base64.getEncoder().encode(userCredentials.getBytes()));
+        
+        try {
+            PhixiusRequest preq = new PhixiusRequest ("ram", "programmer");
+            //WebClient
+            PhixiusResponse newResponse= webClient.post()
                         .uri(testUrl)
                         .header("x-bic", xbic)
                         .header("SubjectDN", subDN)
@@ -77,17 +78,17 @@ public class VerifyAccountServiceImpl implements VerifyAccountService{
                         .bodyToMono(PhixiusResponse.class)
                         .block();
 
-                log.info("Mock response" + newResponse.toString());
-                AccountVerificationResponse1 newAccV = objectMapper(newResponse);
-                log.info("hardcoded with mapper response" + newAccV.toString());
-                return newAccV;
+            log.info("Mock response" + newResponse.toString());
+            AccountVerificationResponse1 newAccV = objectMapper(newResponse);
+            log.info("hardcoded with mapper response" + newAccV.toString());
+            return newAccV;
 
-            }catch (Exception e) {
+        }catch (Exception e) {
                 log.error("Webclient error", e.getStackTrace());
                 log.error("Webclient error", e);
 
-            }
-            return null;
+        }
+        return null;
     }
 
     private AccountVerificationResponse1 objectMapper(PhixiusResponse newResponse) {

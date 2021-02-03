@@ -6,7 +6,7 @@ import org.springframework.stereotype.Component;
 
 @Component
 public class CustomSpringBean {
-    @Autowired
+
     private static ApplicationContext applicationContext;
 
     CustomSpringBean(@Autowired ApplicationContext ctx){
