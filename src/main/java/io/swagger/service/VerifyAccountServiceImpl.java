@@ -3,6 +3,7 @@ package io.swagger.service;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.util.JSONPObject;
+import io.swagger.Exception.CustomErrorException;
 import io.swagger.Exception.CustomSwiftRefException;
 import io.swagger.Exception.PhixiusCustomException;
 import io.swagger.Util.Cryptography;
@@ -96,7 +97,7 @@ public class VerifyAccountServiceImpl implements VerifyAccountService{
            List<Long>  refId = parseSwiftRefRespID(refDataResponseNationalIds);
            if(refId == null || refId.isEmpty() ) {
                log.error("no values returned from swift ref call");
-               throw new CustomSwiftRefException("no swiftref data");
+               throw new CustomErrorException("no swiftref data");
            }
            log.info("refID"+ refId);
            log.info("Swift Ref Data Response"+ refDataResponseNationalIds.toString());
@@ -118,7 +119,6 @@ public class VerifyAccountServiceImpl implements VerifyAccountService{
 
             }
         }catch (Exception e) {
-                log.error("Webclient error", e.getStackTrace());
                  log.error("Webclient error",e.getMessage());
                 log.error("no valid response found");
         }
@@ -137,9 +137,9 @@ public class VerifyAccountServiceImpl implements VerifyAccountService{
                     .accept(MediaType.APPLICATION_JSON)
                     .retrieve()
                     .onStatus(HttpStatus::is4xxClientError,
-                            error -> Mono.error(new CustomSwiftRefException("ClientResponse has erroneous status code: "+ error.statusCode() )))
+                            error -> Mono.error(new CustomErrorException("ClientResponse has erroneous status code: "+ error.statusCode() )))
                     .onStatus(HttpStatus::is5xxServerError,
-                            error -> Mono.error(new CustomSwiftRefException("Error with swiftRefServer: " + error.statusCode())))
+                            error -> Mono.error(new CustomErrorException("Error with swiftRefServer: " + error.statusCode())))
                     .bodyToMono(RefDataResponse.class)
                     .block();
 

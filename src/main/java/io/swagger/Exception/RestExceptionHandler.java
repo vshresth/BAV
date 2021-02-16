@@ -16,7 +16,7 @@ public class RestExceptionHandler {
         headers.setContentType(MediaType.APPLICATION_JSON);
         headers.set("Accept", "application/json");
         error.setErrorCode(HttpStatus.INTERNAL_SERVER_ERROR.value());
-        error.setMessage("Unable to process request");
+        error.setMessage(ex.getMessage());
         return new ResponseEntity<ErrorResponse>(error, headers, HttpStatus.INTERNAL_SERVER_ERROR);
     }
 
