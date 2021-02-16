@@ -45,9 +45,12 @@ public class AccountsApiController implements AccountsApi {
 
         if (accept != null && accept.contains("application/json")) {
             try {
-               // return new ResponseEntity<AccountVerificationResponse1>(verifyAccountServiceImpl.verifyAccountService(body, request.getHeader(xBic), request.getHeader(subjectDN), request.getHeader(institution)), HttpStatus.OK);
-                // check handle null for response entity
-                return new ResponseEntity<AccountVerificationResponse1>(verifyAccountServiceImpl.verifyAccountService(body), HttpStatus.OK);
+                AccountVerificationResponse1 acvResponse = verifyAccountServiceImpl.verifyAccountService(body);
+                if (acvResponse == null|| acvResponse.getCorrelationIdentifier().equals("") || acvResponse.getCorrelationIdentifier().isEmpty()) {
+                    log.error("error with response");
+                    return new ResponseEntity<AccountVerificationResponse1>(HttpStatus.INTERNAL_SERVER_ERROR);
+                } else
+                return new ResponseEntity<AccountVerificationResponse1>(acvResponse,HttpStatus.OK);
 
 
             } catch (Exception e) {

@@ -3,6 +3,7 @@ package io.swagger.service;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.util.JSONPObject;
+import io.swagger.Exception.CustomSwiftRefException;
 import io.swagger.Exception.PhixiusCustomException;
 import io.swagger.Util.Cryptography;
 import io.swagger.model.*;
@@ -93,6 +94,10 @@ public class VerifyAccountServiceImpl implements VerifyAccountService{
 
 
            List<Long>  refId = parseSwiftRefRespID(refDataResponseNationalIds);
+           if(refId == null || refId.isEmpty() ) {
+               log.error("no values returned from swift ref call");
+               throw new CustomSwiftRefException("no swiftref data");
+           }
            log.info("refID"+ refId);
            log.info("Swift Ref Data Response"+ refDataResponseNationalIds.toString());
 
@@ -130,9 +135,12 @@ public class VerifyAccountServiceImpl implements VerifyAccountService{
                     .header("Authorization", swiftRefBasicAuth)
                     .accept(MediaType.APPLICATION_JSON)
                     .retrieve()
+                    .onStatus(HttpStatus::is4xxClientError,
+                            error -> Mono.error(new CustomSwiftRefException("ClientResponse has erroneous status code: "+ error.statusCode() )))
+                    .onStatus(HttpStatus::is5xxServerError,
+                            error -> Mono.error(new CustomSwiftRefException("Error with swiftRefServer: " + error.statusCode())))
                     .bodyToMono(RefDataResponse.class)
                     .block();
-
 
             log.info("return from getSwiftRefDataMethod");
             return refDataResponseNationalIds;
