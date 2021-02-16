@@ -28,6 +28,7 @@ import java.util.List;
 import org.springframework.web.reactive.function.client.WebClient;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
+import org.springframework.cache.annotation.Cacheable;
 
 @Service
 public class VerifyAccountServiceImpl implements VerifyAccountService{
@@ -82,19 +83,14 @@ public class VerifyAccountServiceImpl implements VerifyAccountService{
         //user-credential
         String userCredentials = testUser+":"+Cryptography.decrypt(testPwd);;
         String basicAuth = "Basic " + new String(Base64.getEncoder().encode(userCredentials.getBytes()));
-        String swiftRefBasicAuth = "Basic " + refDataPwd;
+
 
 
         try{
             log.info("Swift Ref Data calls ");
-            RefDataResponse refDataResponseNationalIds = refWebClient.get().
-                    uri(refDataUrl+ xbic + "/national_ids" )
-                    .header("x-bic",xbic)
-                    .header("Authorization", swiftRefBasicAuth)
-                    .accept(MediaType.APPLICATION_JSON)
-                    .retrieve()
-                    .bodyToMono(RefDataResponse.class)
-                    .block();
+            RefDataResponse refDataResponseNationalIds = getSwiftRefData(xbic);
+
+
 
            List<Long>  refId = parseSwiftRefRespID(refDataResponseNationalIds);
            log.info("refID"+ refId);
@@ -122,6 +118,31 @@ public class VerifyAccountServiceImpl implements VerifyAccountService{
         }
 
         return null;
+    }
+
+    @Cacheable(value = "swiftRefData")
+    public RefDataResponse getSwiftRefData(String xbic) {
+        log.info("in the getSwiftRefDataMethod");
+        String swiftRefBasicAuth = "Basic " + refDataPwd;
+        try {
+            RefDataResponse refDataResponseNationalIds = refWebClient.get()
+                    .uri(refDataUrl+ xbic + "/national_ids" )
+                    .header("Authorization", swiftRefBasicAuth)
+                    .accept(MediaType.APPLICATION_JSON)
+                    .retrieve()
+                    .bodyToMono(RefDataResponse.class)
+                    .block();
+
+
+            log.info("return from getSwiftRefDataMethod");
+            return refDataResponseNationalIds;
+        } catch (Exception e) {
+            log.error("error with swiftref " + e.getMessage());
+        }
+
+
+        return null;
+
     }
 
     public List<Long> parseSwiftRefRespID(RefDataResponse refDataResponse){

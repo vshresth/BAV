@@ -114,6 +114,10 @@
             <artifactId>reactor-core</artifactId>
             <version>3.3.13.RELEASE</version>
         </dependency>
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-cache</artifactId>
+        </dependency>
 
 
     </dependencies>
