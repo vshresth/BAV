@@ -119,6 +119,7 @@ public class VerifyAccountServiceImpl implements VerifyAccountService{
             }
         }catch (Exception e) {
                 log.error("Webclient error", e.getStackTrace());
+                 log.error("Webclient error",e.getMessage());
                 log.error("no valid response found");
         }
 

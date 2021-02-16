@@ -1,6 +1,7 @@
 package io.swagger.api;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import io.swagger.Exception.CustomErrorException;
 import io.swagger.model.AccountVerificationRequest;
 import io.swagger.model.AccountVerificationResponse1;
 import io.swagger.service.VerifyAccountServiceImpl;
@@ -39,7 +40,7 @@ public class AccountsApiController implements AccountsApi {
         this.request = request;
     }
 
-    public ResponseEntity<AccountVerificationResponse1> verifyAccount(@Parameter(in = ParameterIn.HEADER, description = "Describe the BIC for SWIFT to route the request to. Providers get the value from the Gateway and consumers are not required to fill it in." ,required=true,schema=@Schema()) @RequestHeader(value="x-bic", required=true) String xBic, @Parameter(in = ParameterIn.HEADER, description = "Describe the Distinguished Name (DN) of the consumer. Providers get the value from the Gateway and consumers are not required to fill it in." ,required=true,schema=@Schema()) @RequestHeader(value="SubjectDN", required=true) String subjectDN, @Parameter(in = ParameterIn.HEADER, description = "Describe the BIC of the consumer. Providers get the value and consumers are not required to fill it in." ,required=true,schema=@Schema()) @RequestHeader(value="Institution", required=true) String institution, @Parameter(in = ParameterIn.DEFAULT, description = "Verify account details request.", required=true, schema=@Schema()) @Valid @RequestBody AccountVerificationRequest body) {
+    public ResponseEntity<AccountVerificationResponse1> verifyAccount(@Parameter(in = ParameterIn.HEADER, description = "Describe the BIC for SWIFT to route the request to. Providers get the value from the Gateway and consumers are not required to fill it in." ,required=true,schema=@Schema()) @RequestHeader(value="x-bic", required=true) String xBic, @Parameter(in = ParameterIn.HEADER, description = "Describe the Distinguished Name (DN) of the consumer. Providers get the value from the Gateway and consumers are not required to fill it in." ,required=true,schema=@Schema()) @RequestHeader(value="SubjectDN", required=true) String subjectDN, @Parameter(in = ParameterIn.HEADER, description = "Describe the BIC of the consumer. Providers get the value and consumers are not required to fill it in." ,required=true,schema=@Schema()) @RequestHeader(value="Institution", required=true) String institution, @Parameter(in = ParameterIn.DEFAULT, description = "Verify account details request.", required=true, schema=@Schema()) @Valid @RequestBody AccountVerificationRequest body) throws CustomErrorException {
         log.info("Controller information inside verifyaccount");
         String accept = request.getHeader("Accept");
 
@@ -48,14 +49,16 @@ public class AccountsApiController implements AccountsApi {
                 AccountVerificationResponse1 acvResponse = verifyAccountServiceImpl.verifyAccountService(body);
                 if (acvResponse == null|| acvResponse.getCorrelationIdentifier().equals("") || acvResponse.getCorrelationIdentifier().isEmpty()) {
                     log.error("error with response");
-                    return new ResponseEntity<AccountVerificationResponse1>(HttpStatus.INTERNAL_SERVER_ERROR);
+                    throw new CustomErrorException("Error with the system");
                 } else
                 return new ResponseEntity<AccountVerificationResponse1>(acvResponse,HttpStatus.OK);
 
 
             } catch (Exception e) {
-                log.error("Couldn't serialize response for content type application/json", e);
-                return new ResponseEntity<AccountVerificationResponse1>(HttpStatus.INTERNAL_SERVER_ERROR);
+                log.error("Error", e.getMessage());
+                log.error("Error", e.getStackTrace());
+                log.error(e.getLocalizedMessage());
+                throw new CustomErrorException("Error with the system");
             }
         }
 

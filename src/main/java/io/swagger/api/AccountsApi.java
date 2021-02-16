@@ -5,6 +5,7 @@
  */
 package io.swagger.api;
 
+import io.swagger.Exception.CustomErrorException;
 import io.swagger.model.AccountVerificationRequest;
 import io.swagger.model.AccountVerificationResponse1;
 import io.swagger.model.ErrorCodeProvider;
@@ -55,7 +56,7 @@ public interface AccountsApi {
     ResponseEntity<AccountVerificationResponse1> verifyAccount(@Parameter(in = ParameterIn.HEADER, description = "Describe the BIC for SWIFT to route the request to. Providers get the value from the Gateway and consumers are not required to fill it in." ,required=true,schema=@Schema()) @RequestHeader(value="x-bic", required=true) String xBic,
                                                                @Parameter(in = ParameterIn.HEADER, description = "Describe the Distinguished Name (DN) of the consumer. Providers get the value from the Gateway and consumers are not required to fill it in." ,required=true,schema=@Schema()) @RequestHeader(value="SubjectDN", required=true) String subjectDN,
                                                                @Parameter(in = ParameterIn.HEADER, description = "Describe the BIC of the consumer. Providers get the value and consumers are not required to fill it in." ,required=true,schema=@Schema()) @RequestHeader(value="Institution", required=true) String institution,
-                                                               @Parameter(in = ParameterIn.DEFAULT, description = "Verify account details request.", required=true, schema=@Schema()) @Valid @RequestBody AccountVerificationRequest body);
+                                                               @Parameter(in = ParameterIn.DEFAULT, description = "Verify account details request.", required=true, schema=@Schema()) @Valid @RequestBody AccountVerificationRequest body) throws CustomErrorException;
 
 }
 

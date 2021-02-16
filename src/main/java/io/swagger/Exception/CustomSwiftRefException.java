@@ -6,11 +6,23 @@ import org.springframework.web.bind.annotation.ResponseStatus;
 import java.io.Serializable;
 
 
-public class CustomSwiftRefException extends RuntimeException {
+public class CustomSwiftRefException  extends Exception {
 
-    public CustomSwiftRefException(String s) {
-        super (String.format("My Exception call error " + s));
+    private static final long serialVersionUID = 1L;
+    private String errorMessage;
+
+    public String getErrorMessage() {
+        return errorMessage;
     }
-}
 
+    public CustomSwiftRefException(String errorMessage) {
+        super(errorMessage);
+        this.errorMessage = errorMessage;
+    }
+
+    public CustomSwiftRefException() {
+        super();
+    }
+
+}
 
