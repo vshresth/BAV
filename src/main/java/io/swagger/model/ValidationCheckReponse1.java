@@ -7,6 +7,7 @@ import io.swagger.model.AccountValidationResponse1Code;
 import io.swagger.model.AccountValidationResponse2Code;
 import io.swagger.model.AccountValidationResponse3Code;
 import io.swagger.v3.oas.annotations.media.Schema;
+import org.springframework.stereotype.Component;
 import org.springframework.validation.annotation.Validated;
 import javax.validation.Valid;
 import javax.validation.constraints.*;
@@ -17,7 +18,7 @@ import javax.validation.constraints.*;
 @Validated
 @javax.annotation.Generated(value = "io.swagger.codegen.v3.generators.java.SpringCodegen", date = "2020-12-31T21:15:33.955Z[GMT]")
 
-
+@Component("validationCheckReponse1")
 public class ValidationCheckReponse1   {
   @JsonProperty("account_validation_status")
   private AccountValidationResponse3Code accountValidationStatus = null;

@@ -1,11 +1,16 @@
 package io.swagger.service;
 
 
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.util.JSONPObject;
+import io.swagger.Exception.PhixiusCustomException;
 import io.swagger.Util.Cryptography;
 import io.swagger.model.*;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpHeaders;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.MediaType;
 import org.springframework.stereotype.Service;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -16,9 +21,12 @@ import java.io.OutputStream;
 import java.net.HttpURLConnection;
 import java.net.URL;
 import java.nio.charset.StandardCharsets;
+import java.util.ArrayList;
 import java.util.Base64;
+import java.util.List;
 
 import org.springframework.web.reactive.function.client.WebClient;
+import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
 @Service
@@ -31,22 +39,35 @@ public class VerifyAccountServiceImpl implements VerifyAccountService{
     private String testUser;
     @Value("${test.pwd}")
     private String testPwd;
+    @Value("${refdata.url}")
+    private String refDataUrl;
+    @Value("${refdata.pwd}")
+    private String refDataPwd;
 
     private final WebClient webClient;
+    private final WebClient refWebClient;
+
     @Autowired
     public VerifyAccountServiceImpl() {
         this.webClient = WebClient.builder().baseUrl(testUrl)
                 .defaultHeader(HttpHeaders.CONTENT_TYPE, "application/json")
                 .build();
         log.info("in const 1:");
+        this.refWebClient = WebClient.builder().baseUrl(refDataUrl).defaultHeader(HttpHeaders.CONTENT_TYPE, MediaType.APPLICATION_JSON_VALUE).build();
     }
 
+    @Autowired
+    PhixiusResponse phixiusResponse;
+    @Autowired
+    PhixiusRequest phixiusRequest;
+    @Autowired
+    HeaderBean headerBean;
 
     @Override
     public AccountVerificationResponse1 verifyAccountService(AccountVerificationRequest body) {
 
         log.info("End URL is: " + testUrl);
-        HeaderBean headerBean=CustomSpringBean.getHeaderBean();
+        // headerBean=CustomSpringBean.getHeaderBean();
         StringBuilder response = new StringBuilder();
         String responseLine = null;
 
@@ -61,50 +82,114 @@ public class VerifyAccountServiceImpl implements VerifyAccountService{
         //user-credential
         String userCredentials = testUser+":"+Cryptography.decrypt(testPwd);;
         String basicAuth = "Basic " + new String(Base64.getEncoder().encode(userCredentials.getBytes()));
-        
-        try {
-            PhixiusRequest preq = new PhixiusRequest ("ram", "programmer");
-            //WebClient
-            PhixiusResponse newResponse= webClient.post()
-                        .uri(testUrl)
-                        .header("x-bic", xbic)
-                        .header("SubjectDN", subDN)
-                        .header("Institution", inst)
-                      //  .header("Authorization", basicAuth)
-                        .header("Accept", "application/json")
-                        .header("User-Agent", "Mozilla/4.76")
-                        .body(Mono.just(preq), PhixiusRequest.class)
-                        .retrieve()
-                        .bodyToMono(PhixiusResponse.class)
-                        .block();
+        String swiftRefBasicAuth = "Basic " + refDataPwd;
 
-            log.info("Mock response" + newResponse.toString());
-            AccountVerificationResponse1 newAccV = objectMapper(newResponse);
-            log.info("hardcoded with mapper response" + newAccV.toString());
-            return newAccV;
 
+        try{
+            log.info("Swift Ref Data calls ");
+            RefDataResponse refDataResponseNationalIds = refWebClient.get().
+                    uri(refDataUrl+ xbic + "/national_ids" )
+                    .header("x-bic",xbic)
+                    .header("Authorization", swiftRefBasicAuth)
+                    .accept(MediaType.APPLICATION_JSON)
+                    .retrieve()
+                    .bodyToMono(RefDataResponse.class)
+                    .block();
+
+           List<Long>  refId = parseSwiftRefRespID(refDataResponseNationalIds);
+           log.info("refID"+ refId);
+           log.info("Swift Ref Data Response"+ refDataResponseNationalIds.toString());
+
+           for(Long id : refId){
+
+               phixiusResponse  = phixiusResponseCall(xbic,subDN,inst,basicAuth);
+               log.info("newResponse "+ phixiusResponse);
+               if((phixiusResponse.getAccountStatus().equals("Enabled") || phixiusResponse.getAccountStatus().equals("Disabled") || phixiusResponse.getAccountStatus().equals("NOT Found"))){
+                    AccountVerificationResponse1 newAccV = objectMapper(phixiusResponse);
+                    return newAccV;
+            }else{
+                throw new PhixiusCustomException();
+            }
+
+//            log.info("Mock response" + newResponse.toString());
+//            AccountVerificationResponse1 newAccV = objectMapper(newResponse);
+//            log.info("hardcoded with mapper response" + newAccV.toString());
+
+            }
         }catch (Exception e) {
                 log.error("Webclient error", e.getStackTrace());
-                log.error("Webclient error", e);
-
+                log.error("no valid response found");
         }
+
         return null;
+    }
+
+    public List<Long> parseSwiftRefRespID(RefDataResponse refDataResponse){
+
+        List<Long> refDataNatlID = new ArrayList<>();
+        if(refDataResponse != null && !refDataResponse.getNationalIds().isEmpty()) {
+            for (RefDataResponse.NationalIds id : refDataResponse.getNationalIds()) {
+                    refDataNatlID.add(id.getId());
+                }
+            }
+        return refDataNatlID;
+    }
+
+    public PhixiusResponse phixiusResponseCall(String xbic, String subDn, String inst, String basicAuth){
+      //  phixiusRequest  = new PhixiusRequest();
+//        PhixiusResponse phixiusResponse = webClient.post()
+//                .uri(testUrl)
+//                .header("x-bic", xbic)
+//                .header("SubjectDN", subDn)
+//                .header("Institution", inst)
+//                //.header("Authorization", basicAuth)
+//                .header("Accept", "application/json")
+//                //.header("User-Agent", "Mozilla/4.76")
+//                .body(Mono.just(phixiusRequest), PhixiusRequest.class)
+//                .retrieve()
+//                .bodyToMono(PhixiusResponse.class)
+//                .block();
+
+        PhixiusResponse phixiusResponse = new PhixiusResponse();
+
+        phixiusResponse.setAccountStatus("Enabled");
+        DebtorAccount debtorAccount = new DebtorAccount();
+        debtorAccount.setIdentification("13590100098332");
+
+        DebtorAgent debtorAgent = new DebtorAgent();
+        debtorAgent.setMemberIdentification("226078036");
+        debtorAgent.setClearingSystemIdentification("USABA");
+
+       // phixiusResponse.setDebtorAccount();
+        phixiusResponse.setDebtorAccount(debtorAccount);
+        phixiusResponse.setDebtorAgent(debtorAgent);
+        return phixiusResponse;
     }
 
     private AccountVerificationResponse1 objectMapper(PhixiusResponse newResponse) {
         AccountVerificationResponse1 newAccV = new AccountVerificationResponse1();
         ValidationCheckReponse1 newVCR = new ValidationCheckReponse1();
+        AccountValidationResponse3Code accountValidationResponse3Code;
+        PhixiusBavResponse phixiusBavResponse = new PhixiusBavResponse();
 
-        newVCR.setAccountValidationStatus(newResponse.getAccountValidationStatus());
-        newVCR.setCreditorAccountMatch(newResponse.getCreditorAccountMatch());
-        newVCR.creditorNameMatch(newResponse.getCreditorNameMatch());
-        newVCR.setCreditorAddressMatch(newResponse.getCreditorAddressMatch());
-        newVCR.setCreditorOrganisationIdentificationMatch(newResponse.getCreditorOrganisationIdentificationMatch());
-        newAccV.setCorrelationIdentifier(newResponse.getCorrelationIdentifier());
+        if(newResponse.getAccountStatus()=="Enabled"){
+             accountValidationResponse3Code =  AccountValidationResponse3Code.PASS;
+        }else if (newResponse.getAccountStatus()=="Disabled"){
+             accountValidationResponse3Code =  AccountValidationResponse3Code.FAIL;
+        }else{
+             accountValidationResponse3Code =  AccountValidationResponse3Code.INCO;
+        }
+        newVCR.setAccountValidationStatus(accountValidationResponse3Code);
+        newVCR.setCreditorAccountMatch(phixiusBavResponse.getCreditorAccountMatch());
+        newVCR.creditorNameMatch(phixiusBavResponse.getCreditorNameMatch());
+        newVCR.setCreditorAddressMatch(phixiusBavResponse.getCreditorAddressMatch());
+        newVCR.setCreditorOrganisationIdentificationMatch(phixiusBavResponse.getCreditorOrganisationIdentificationMatch());
+        newAccV.setCorrelationIdentifier(phixiusBavResponse.getCorrelationIdentifier());
         newAccV.setResponse(newVCR);
 
         return newAccV;
     }
+
 
     @Override
     public AccountVerificationResponse1 verifyAccountService(AccountVerificationRequest body, HttpHeaders headers) {

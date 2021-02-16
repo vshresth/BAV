@@ -1,9 +1,10 @@
 package io.swagger.interceptor;
 
-import io.swagger.model.CustomSpringBean;
+import io.swagger.model.*;
 import io.swagger.service.VerifyAccountServiceImpl;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 import org.springframework.web.servlet.HandlerInterceptor;
 import org.springframework.web.servlet.ModelAndView;
@@ -15,6 +16,8 @@ import javax.servlet.http.HttpServletResponse;
 public class CustomInterceptor implements HandlerInterceptor {
     private static final Logger log = LoggerFactory.getLogger(CustomInterceptor.class);
 
+    @Autowired
+    HeaderBean headerBean;
 
     @Override
     public boolean preHandle(HttpServletRequest request, HttpServletResponse response, Object handler) throws Exception {
@@ -25,9 +28,12 @@ public class CustomInterceptor implements HandlerInterceptor {
         String institution =request.getHeader("Institution");
 
         // setting the headers in request scope bean HeaderBean.class
-        CustomSpringBean.getHeaderBean().setXbic(xbic);
-        CustomSpringBean.getHeaderBean().setSubjectDN(subjectDN);
-        CustomSpringBean.getHeaderBean().setInstitution(institution);
+//        CustomSpringBean.getHeaderBean().setXbic(xbic);
+//        CustomSpringBean.getHeaderBean().setSubjectDN(subjectDN);
+//        CustomSpringBean.getHeaderBean().setInstitution(institution);
+          headerBean.setXbic(xbic);
+          headerBean.setSubjectDN(subjectDN);
+          headerBean.setInstitution(institution);
         return true;
     }
 
