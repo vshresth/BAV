@@ -64,7 +64,7 @@ public class Cryptography {
             Cipher cipher = Cipher.getInstance("AES/ECB/PKCS5PADDING");
             cipher.init(Cipher.DECRYPT_MODE, secretKey);
             String result = new String(cipher.doFinal(Base64.getDecoder().decode(strToDecrypt)));
-            log.info(" decrypting: " + result);
+            log.info("decrypting Key");
 
             return result;
         }

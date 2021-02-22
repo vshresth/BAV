@@ -1,5 +1,7 @@
 package io.swagger.Exception;
 
+import org.springframework.http.HttpStatus;
+
 public class CustomErrorException extends Exception {
 
     private static final long serialVersionUID = 1L;
@@ -13,6 +15,7 @@ public class CustomErrorException extends Exception {
         super(errorMessage);
         this.errorMessage = errorMessage;
     }
+
 
     public CustomErrorException() {
         super();

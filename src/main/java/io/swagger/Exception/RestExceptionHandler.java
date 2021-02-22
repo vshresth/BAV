@@ -15,9 +15,9 @@ public class RestExceptionHandler {
         HttpHeaders headers = new HttpHeaders();
         headers.setContentType(MediaType.APPLICATION_JSON);
         headers.set("Accept", "application/json");
-        error.setErrorCode(HttpStatus.INTERNAL_SERVER_ERROR.value());
+        error.setErrorCode(HttpStatus.BAD_REQUEST.value());
         error.setMessage(ex.getMessage());
-        return new ResponseEntity<ErrorResponse>(error, headers, HttpStatus.INTERNAL_SERVER_ERROR);
+        return new ResponseEntity<ErrorResponse>(error, headers, HttpStatus.BAD_REQUEST);
     }
 
     @ExceptionHandler(Exception.class)
@@ -26,9 +26,9 @@ public class RestExceptionHandler {
         HttpHeaders headers = new HttpHeaders();
         headers.setContentType(MediaType.APPLICATION_JSON);
         headers.set("Accept", "application/json");
-        error.setErrorCode(HttpStatus.BAD_REQUEST.value());
+        error.setErrorCode(HttpStatus.NOT_IMPLEMENTED.value());
         error.setMessage("The request could not be understood by the server due to malformed syntax.");
-        return new ResponseEntity<ErrorResponse>(error, headers, HttpStatus.BAD_REQUEST);
+        return new ResponseEntity<ErrorResponse>(error, headers, HttpStatus.NOT_IMPLEMENTED);
     }
 
 }

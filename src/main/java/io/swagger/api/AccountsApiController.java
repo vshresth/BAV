@@ -48,21 +48,17 @@ public class AccountsApiController implements AccountsApi {
             try {
                 AccountVerificationResponse1 acvResponse = verifyAccountServiceImpl.verifyAccountService(body);
                 if (acvResponse == null|| acvResponse.getCorrelationIdentifier().equals("") || acvResponse.getCorrelationIdentifier().isEmpty()) {
-                    log.error("error with response");
-                    throw new CustomErrorException("Error with the system");
+                    throw new CustomErrorException("Error with the response values");
                 } else
                 return new ResponseEntity<AccountVerificationResponse1>(acvResponse,HttpStatus.OK);
 
 
             } catch (Exception e) {
-                log.error("Error", e.getMessage());
-                log.error("Error", e.getStackTrace());
-                log.error(e.getLocalizedMessage());
+                log.error("Error: ", e.getMessage());
                 throw new CustomErrorException("Error with the system");
             }
         }
-
-        return new ResponseEntity<AccountVerificationResponse1>(HttpStatus.NOT_IMPLEMENTED);
+        return new ResponseEntity<AccountVerificationResponse1>(HttpStatus.INTERNAL_SERVER_ERROR);
     }
 
 }

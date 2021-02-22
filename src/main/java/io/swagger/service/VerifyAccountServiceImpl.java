@@ -1,10 +1,7 @@
 package io.swagger.service;
 
 
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.databind.util.JSONPObject;
 import io.swagger.Exception.CustomErrorException;
-import io.swagger.Exception.CustomSwiftRefException;
 import io.swagger.Exception.PhixiusCustomException;
 import io.swagger.Util.Cryptography;
 import io.swagger.model.*;
@@ -28,7 +25,6 @@ import java.util.Base64;
 import java.util.List;
 
 import org.springframework.web.reactive.function.client.WebClient;
-import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 import org.springframework.cache.annotation.Cacheable;
 
@@ -55,7 +51,7 @@ public class VerifyAccountServiceImpl implements VerifyAccountService{
         this.webClient = WebClient.builder().baseUrl(testUrl)
                 .defaultHeader(HttpHeaders.CONTENT_TYPE, "application/json")
                 .build();
-        log.info("in const 1:");
+        log.info("in const:");
         this.refWebClient = WebClient.builder().baseUrl(refDataUrl).defaultHeader(HttpHeaders.CONTENT_TYPE, MediaType.APPLICATION_JSON_VALUE).build();
     }
 
@@ -69,7 +65,6 @@ public class VerifyAccountServiceImpl implements VerifyAccountService{
     @Override
     public AccountVerificationResponse1 verifyAccountService(AccountVerificationRequest body) {
 
-        log.info("End URL is: " + testUrl);
         // headerBean=CustomSpringBean.getHeaderBean();
         StringBuilder response = new StringBuilder();
         String responseLine = null;
@@ -79,6 +74,7 @@ public class VerifyAccountServiceImpl implements VerifyAccountService{
         String inst = headerBean.getInstitution();
         String subDN = headerBean.getSubjectDN();
 
+        log.info("End URL is: " + testUrl);
         log.info("xbic: "+xbic);
         log.info("inst: "+inst);
         log.info("subDN "+subDN);
@@ -87,22 +83,18 @@ public class VerifyAccountServiceImpl implements VerifyAccountService{
         String basicAuth = "Basic " + new String(Base64.getEncoder().encode(userCredentials.getBytes()));
 
 
-
         try{
             log.info("Swift Ref Data calls ");
             RefDataResponse refDataResponseNationalIds = getSwiftRefData(xbic);
 
-
-
            List<Long>  refId = parseSwiftRefRespID(refDataResponseNationalIds);
            if(refId == null || refId.isEmpty() ) {
                log.error("no values returned from swift ref call");
-               throw new CustomErrorException("no swiftref data");
+               throw new CustomErrorException("no values returned from swift ref call");
            }
-           log.info("refID"+ refId);
-           log.info("Swift Ref Data Response"+ refDataResponseNationalIds.toString());
 
            for(Long id : refId){
+               log.info("refID: "+ id);
 
                phixiusResponse  = phixiusResponseCall(xbic,subDN,inst,basicAuth);
                log.info("newResponse "+ phixiusResponse);
@@ -119,15 +111,14 @@ public class VerifyAccountServiceImpl implements VerifyAccountService{
 
             }
         }catch (Exception e) {
-                 log.error("Webclient error",e.getMessage());
-                log.error("no valid response found");
+            log.error("Webclient error: ",e.getMessage());
         }
 
         return null;
     }
 
     @Cacheable(value = "swiftRefData")
-    public RefDataResponse getSwiftRefData(String xbic) {
+    public RefDataResponse getSwiftRefData(String xbic) throws CustomErrorException {
         log.info("in the getSwiftRefDataMethod");
         String swiftRefBasicAuth = "Basic " + refDataPwd;
         try {
@@ -137,20 +128,19 @@ public class VerifyAccountServiceImpl implements VerifyAccountService{
                     .accept(MediaType.APPLICATION_JSON)
                     .retrieve()
                     .onStatus(HttpStatus::is4xxClientError,
-                            error -> Mono.error(new CustomErrorException("ClientResponse has erroneous status code: "+ error.statusCode() )))
+                            error -> Mono.error(new CustomErrorException("ClientResponse has erroneous status code: " + error.statusCode() )))
                     .onStatus(HttpStatus::is5xxServerError,
-                            error -> Mono.error(new CustomErrorException("Error with swiftRefServer: " + error.statusCode())))
+                            error -> Mono.error(new CustomErrorException("Error with swiftRefServer: "+ error.statusCode())))
                     .bodyToMono(RefDataResponse.class)
                     .block();
 
             log.info("return from getSwiftRefDataMethod");
             return refDataResponseNationalIds;
         } catch (Exception e) {
-            log.error("error with swiftref " + e.getMessage());
+            log.error("Error calling swiftRefData: " + e.getMessage());
+            throw new CustomErrorException("Error calling swiftRefData: "+e.getMessage() );
         }
 
-
-        return null;
 
     }
 
@@ -218,108 +208,6 @@ public class VerifyAccountServiceImpl implements VerifyAccountService{
         newAccV.setResponse(newVCR);
 
         return newAccV;
-    }
-
-
-    @Override
-    public AccountVerificationResponse1 verifyAccountService(AccountVerificationRequest body, HttpHeaders headers) {
-        return null;
-    }
-    @Override
-    public AccountVerificationResponse1 verifyAccountService(AccountVerificationRequest body, String xbic, String subDN, String inst) {
-        log.info("End URL is: " + testUrl);
-        StringBuilder response = new StringBuilder();
-        String responseLine = null;
-        AccountVerificationResponse1 newAccV = new AccountVerificationResponse1();
-        ValidationCheckReponse1 newVCR = new ValidationCheckReponse1();
-
-        try {
-
-            //headers
-           // String xbic = headerBean.getXbic();
-           // String inst = headerBean.getInstitution();
-            //String subDN = headerBean.getSubjectDN();
-
-            log.info("xbic: "+xbic);
-            log.info("inst: "+inst);
-            log.info("subDN "+subDN);
-            //user-credential
-            String userCredentials = testUser+":"+Cryptography.decrypt(testPwd);;
-            String basicAuth = "Basic " + new String(Base64.getEncoder().encode(userCredentials.getBytes()));
-
-            //create connection to the endpoint
-            URL url = new URL(testUrl);
-            HttpURLConnection con = (HttpURLConnection)url.openConnection();
-            con.setRequestMethod("POST");
-            //set headers
-            con.addRequestProperty("User-Agent", "Mozilla/4.76"); // only for this dummy url
-            con.setRequestProperty("Content-Type", "application/json");
-            con.setRequestProperty ("Accept", "application/json");
-            con.setRequestProperty ("x-bic", xbic);
-            con.setRequestProperty ("SubjectDN", subDN);
-            con.setRequestProperty ("Institution", inst);
-            // con.setRequestProperty ("Authorization", basicAuth);
-
-
-            con.setUseCaches(false);
-            con.setDoOutput(true);
-            con.setReadTimeout(5000);
-            con.setInstanceFollowRedirects(true);
-            con.setConnectTimeout(5000);
-            con.setReadTimeout(5000);
-
-            // send the input message body
-            String jsonInputString = body.toString();
-            log.info(":Actual input: " +jsonInputString);
-            String testString = "{\"name\": \"Ram\", \"job\": \"Programmer\"}";
-            log.info("Sample string: " + testString);
-
-            try(OutputStream os = con.getOutputStream()){
-                byte[] input = testString.getBytes(StandardCharsets.UTF_8);
-                os.write(input, 0, input.length);
-            } catch (Exception e) {
-                log.error("error with input json", e);
-
-            }
-
-
-            //get response status
-            int status = con.getResponseCode();
-            log.info("Status is: " +  status);
-            BufferedReader in = new BufferedReader(new InputStreamReader(con.getInputStream()));
-
-            while ((responseLine = in.readLine()) != null) {
-                response.append(responseLine.trim());
-            }
-            log.info("Response from server is: " +response.toString());
-
-            log.info("Closing connections");
-            in.close();
-            con.disconnect();
-
-
-        } catch (IOException e) {
-            log.error("Connection error", e);
-
-
-        }catch (Exception e) {
-            log.error("other error", e);
-
-
-        }
-
-        //hard coding values
-
-        newVCR.setAccountValidationStatus(AccountValidationResponse3Code.PASS);
-        newVCR.setCreditorAccountMatch(AccountValidationResponse2Code.NMTC);
-        newVCR.creditorNameMatch(AccountValidationResponse1Code.NOTC);
-        newVCR.setCreditorAddressMatch(AccountValidationResponse1Code.NOTC);
-        newVCR.setCreditorOrganisationIdentificationMatch(AccountValidationResponse1Code.NOTC);
-        newAccV.setCorrelationIdentifier("CORRID-003");
-        newAccV.setResponse(newVCR);
-
-        return newAccV;
-
     }
 
 }
