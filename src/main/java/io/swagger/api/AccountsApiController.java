@@ -56,8 +56,6 @@ public class AccountsApiController implements AccountsApi {
 
             } catch (Exception e) {
                 log.error("Error", e.getMessage());
-                log.error("Error", e.getStackTrace());
-                log.error(e.getLocalizedMessage());
                 throw new CustomErrorException("Error with the system");
             }
         }

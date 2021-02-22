@@ -19,17 +19,17 @@ public class RefDataResponse {
 
     public static class NationalIds {
         @JsonProperty("id")
-        private long id;
+        private String id;
         @JsonProperty("scheme")
         private String scheme;
         @JsonProperty("type")
         private String type;
 
-        public long getId() {
+        public String getId() {
             return id;
         }
 
-        public void setId(long id) {
+        public void setId(String id) {
             this.id = id;
         }
 
@@ -48,8 +48,23 @@ public class RefDataResponse {
         public void setType(String type) {
             this.type = type;
         }
+
+        @Override
+        public String toString() {
+            return "NationalIds{" +
+                    "id=" + id +
+                    ", scheme='" + scheme + '\'' +
+                    ", type='" + type + '\'' +
+                    '}';
+        }
     }
 
+    @Override
+    public String toString() {
+        return "RefDataResponse{" +
+                "nationalIds=" + nationalIds +
+                '}';
+    }
 }
 
 

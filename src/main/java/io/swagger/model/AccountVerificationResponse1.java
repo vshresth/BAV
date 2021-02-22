@@ -18,7 +18,7 @@ import javax.validation.constraints.*;
 @Validated
 @javax.annotation.Generated(value = "io.swagger.codegen.v3.generators.java.SpringCodegen", date = "2020-12-31T21:15:33.955Z[GMT]")
 
-@Component("accountVerificationResponse1")
+@Component
 public class AccountVerificationResponse1   {
   @JsonProperty("correlation_identifier")
   private String correlationIdentifier = null;
