@@ -58,9 +58,7 @@ public class SwiftRefServiceImpl implements SwiftRefService {
         } catch (Exception e) {
             log.error("error with swiftref " + e.getMessage());
         }
-
         return null;
-
     }
 
     @Override
