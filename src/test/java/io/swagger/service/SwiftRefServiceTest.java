@@ -2,25 +2,20 @@ package io.swagger.service;
 
 import io.swagger.model.RefDataResponse;
 import org.junit.Assert;
-import org.junit.FixMethodOrder;
-import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.Test;
+import org.junit.Before;
+import org.junit.Test;
 import org.junit.runner.RunWith;
-import org.junit.runners.MethodSorters;
 import org.mockito.InjectMocks;
-import org.mockito.Mock;
-import org.mockito.Mockito;
 import org.mockito.MockitoAnnotations;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
 import org.springframework.test.util.ReflectionTestUtils;
 
-import java.sql.Ref;
 import java.util.List;
 
 @RunWith(SpringJUnit4ClassRunner.class)
 @SpringBootTest
-class SwiftRefServiceTest {
+public class SwiftRefServiceTest {
 
     @InjectMocks
     private SwiftRefService swiftRefService = new SwiftRefServiceImpl() ;
@@ -28,7 +23,7 @@ class SwiftRefServiceTest {
     private  RefDataResponse refDataResponse ;
     private  RefDataResponse refDataResponse2 ;
 
-    @BeforeEach
+    @Before
     public void setUp() {
 
         MockitoAnnotations.initMocks(this);
