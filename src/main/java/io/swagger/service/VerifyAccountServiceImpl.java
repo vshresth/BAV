@@ -10,6 +10,8 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import java.util.ArrayList;
 import java.util.Base64;
 import java.util.List;
 
@@ -44,21 +46,31 @@ public class VerifyAccountServiceImpl implements VerifyAccountService{
         String userCredentials = testUser+":"+Cryptography.decrypt(testPwd);
         String basicAuth = "Basic " + new String(Base64.getEncoder().encode(userCredentials.getBytes()));
 
-
         try{
-            log.info("Swift Ref Data calls ");
-            RefDataResponse refDataResponseNationalIds = swiftRefService.getSwiftRefData(xbic);
+            List<String>  refId = new ArrayList<>();
+            log.info("checkMemberID in request ");
+            String memberID = body.getCreditorAgent().getClearingSystemMemberIdentification().getClearingSystemIdentification().getCode();
+            if(memberID ==null || memberID.isEmpty() || memberID.equals("") || memberID.equals(" ")) {
+                log.info("checkMemberID is not in request ");
+                log.info("Swift Ref Data calls ");
+                RefDataResponse refDataResponseNationalIds = swiftRefService.getSwiftRefData(xbic);
+                refId = swiftRefService.parseSwiftRefRespID(refDataResponseNationalIds);
+                log.info("refID"+ refId);
+                if(refId == null || refId.isEmpty() ) {
+                    log.error("no values returned from swift ref call");
+                    throw new CustomErrorException("no swiftref data");
+                }
+                log.info("refID"+ refId);
+                log.info("Swift Ref Data Response"+ refDataResponseNationalIds.toString());
 
-            List<String>  refId = swiftRefService.parseSwiftRefRespID(refDataResponseNationalIds);
-            log.info("refID"+ refId);
-            if(refId == null || refId.isEmpty() ) {
-                log.error("no values returned from swift ref call");
-                throw new CustomErrorException("no swiftref data");
+            } else {
+                log.info("checkMemberID from request ");
+                refId.add(memberID);
             }
-            log.info("refID"+ refId);
-            log.info("Swift Ref Data Response"+ refDataResponseNationalIds.toString());
 
-           for(String id : refId){
+           for(int i=0; i <= refId.size()-1;i++){
+
+               String id = refId.get(i);
                //send basicauth, refid, account number from initial request body, clearing system identification
                PhixiusResponse phixiusResponse  = phixiusService.phixiusResponseCall(id);
                log.info("newResponse "+ phixiusResponse);
@@ -66,9 +78,9 @@ public class VerifyAccountServiceImpl implements VerifyAccountService{
                if((phixiusResponse.getAccountStatus().equals("Enabled") || phixiusResponse.getAccountStatus().equals("Disabled") || phixiusResponse.getAccountStatus().equals("NOT Found"))){
                    AccountVerificationResponse1 newAccV = objectMapper(phixiusResponse,body);
                     return newAccV;
-            }else{
-                throw new PhixiusCustomException();
-               }
+                }else if (i == refId.size()-1){
+                    throw new PhixiusCustomException();
+                 }
            }
         }catch (Exception e) {
                  log.error("Webclient error",e.getMessage());
